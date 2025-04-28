@@ -1,10 +1,16 @@
 
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { GitBranch } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface RepositoryFormProps {
   onSubmit: (repoUrl: string) => void;
@@ -13,6 +19,17 @@ interface RepositoryFormProps {
 
 const RepositoryForm: React.FC<RepositoryFormProps> = ({ onSubmit, isLoading }) => {
   const [repoUrl, setRepoUrl] = useState<string>('');
+  
+  const repositoryOptions = [
+    {
+      value: "https://git.vermeg.com/Palmyra-Group/Palmyra-IntegrationTests/automatictests/automatictest-core/BigDataWeb.git",
+      label: "BigDataWeb"
+    },
+    {
+      value: "https://git.vermeg.com/Palmyra-Group/Palmyra-IntegrationTests/automatictests/automatictest-core/bigdatatest.git",
+      label: "bigdatatest"
+    }
+  ];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,19 +37,7 @@ const RepositoryForm: React.FC<RepositoryFormProps> = ({ onSubmit, isLoading }) 
     if (!repoUrl.trim()) {
       toast({
         title: "Error",
-        description: "Please enter a repository URL",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Updated validation pattern to include git.vermeg.com
-    const validUrlPattern = /^https:\/\/(git\.vermeg\.com|github\.com|gitlab\.com|bitbucket\.org)\/[\w-]+\/[\w.-]+\/?.*$/i;
-    
-    if (!validUrlPattern.test(repoUrl)) {
-      toast({
-        title: "Invalid Repository URL",
-        description: "Please enter a valid repository URL from git.vermeg.com, GitHub, GitLab, or Bitbucket",
+        description: "Please select a repository",
         variant: "destructive",
       });
       return;
@@ -44,16 +49,20 @@ const RepositoryForm: React.FC<RepositoryFormProps> = ({ onSubmit, isLoading }) 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md">
       <div className="space-y-2">
-        <Label htmlFor="repo-url">Repository URL</Label>
+        <Label htmlFor="repo-url">Repository</Label>
         <div className="flex space-x-2">
-          <Input
-            id="repo-url"
-            placeholder="https://git.vermeg.com/organisation/repository"
-            value={repoUrl}
-            onChange={(e) => setRepoUrl(e.target.value)}
-            className="flex-1"
-            disabled={isLoading}
-          />
+          <Select value={repoUrl} onValueChange={setRepoUrl}>
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder="Select a repository" />
+            </SelectTrigger>
+            <SelectContent>
+              {repositoryOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button type="submit" disabled={isLoading}>
             {isLoading ? (
               <span className="flex items-center">
@@ -73,7 +82,7 @@ const RepositoryForm: React.FC<RepositoryFormProps> = ({ onSubmit, isLoading }) 
         </div>
       </div>
       <div className="text-xs text-muted-foreground">
-        Enter the URL of a repository from git.vermeg.com, GitHub, GitLab, or Bitbucket to analyze its pipelines
+        Select one of the Vermeg GitLab repositories to analyze its pipelines
       </div>
     </form>
   );
