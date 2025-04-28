@@ -15,72 +15,98 @@ export const generateMockPipelineData = (repoUrl: string): Pipeline[] => {
     console.error("Error parsing URL:", e);
   }
 
-  const statuses: Array<'success' | 'error' | 'warning' | 'running' | 'pending'> = [
-    'success', 'success', 'success', 'error', 'warning', 'running', 'pending'
+  // Real authors with proper names and roles
+  const authors = [
+    { name: "Mohammed Ali", email: "mali@vermeg.com" },
+    { name: "Sarah Johnson", email: "sjohnson@vermeg.com" },
+    { name: "Ahmed Khalid", email: "akhalid@vermeg.com" },
+    { name: "Leila Ben Salah", email: "lbensalah@vermeg.com" },
+    { name: "Omar Trabelsi", email: "otrabelsi@vermeg.com" }
   ];
-  
+
+  // More realistic commit messages
+  const commitMessages = [
+    `fix(core): resolve memory leak in data processing module`,
+    `feat(ui): implement new dashboard components`,
+    `chore(deps): update third-party dependencies`,
+    `test(api): add integration tests for auth endpoints`,
+    `refactor(services): improve error handling in pipeline executor`,
+    `docs(readme): update deployment instructions`,
+    `fix(security): address vulnerability in authentication flow`
+  ];
+
+  // Template for stages with realistic steps
   const stageTemplates = [
     [
-      { name: "Build", status: "success" },
-      { name: "Test", status: "success" },
-      { name: "Deploy", status: "success" }
+      { name: "Preparation", status: "success", failureReason: null },
+      { name: "Build", status: "success", failureReason: null },
+      { name: "Unit Tests", status: "success", failureReason: null },
+      { name: "Deploy", status: "success", failureReason: null }
     ],
     [
-      { name: "Build", status: "success" },
-      { name: "Test", status: "error" },
-      { name: "Deploy", status: "pending" }
+      { name: "Preparation", status: "success", failureReason: null },
+      { name: "Build", status: "success", failureReason: null },
+      { name: "Unit Tests", status: "error", failureReason: "3 tests failed in AuthService.spec.ts: Expected token validation to return true" },
+      { name: "Deploy", status: "pending", failureReason: null }
     ],
     [
-      { name: "Lint", status: "success" },
-      { name: "Build", status: "success" },
-      { name: "Unit Tests", status: "success" },
-      { name: "E2E Tests", status: "warning" },
-      { name: "Deploy", status: "pending" }
+      { name: "Lint", status: "success", failureReason: null },
+      { name: "Build", status: "success", failureReason: null },
+      { name: "Unit Tests", status: "success", failureReason: null },
+      { name: "Integration Tests", status: "error", failureReason: "Connection timeout after 30s while connecting to database" },
+      { name: "Security Scan", status: "pending", failureReason: null },
+      { name: "Deploy", status: "pending", failureReason: null }
     ],
     [
-      { name: "Build", status: "success" },
-      { name: "Test", status: "success" },
-      { name: "Security Scan", status: "running" },
-      { name: "Deploy", status: "pending" }
+      { name: "Preparation", status: "success", failureReason: null },
+      { name: "Build", status: "error", failureReason: "Webpack build failed: Cannot find module './components/Dashboard'" },
+      { name: "Tests", status: "skipped", failureReason: null },
+      { name: "Deploy", status: "skipped", failureReason: null }
+    ],
+    [
+      { name: "Lint", status: "warning", failureReason: "ESLint found 12 warnings in src/services/" },
+      { name: "Build", status: "success", failureReason: null },
+      { name: "Unit Tests", status: "success", failureReason: null },
+      { name: "Deploy", status: "running", failureReason: null }
     ]
-  ] as Array<Array<{name: string, status: 'success' | 'error' | 'warning' | 'running' | 'pending'}>>;
+  ] as Array<Array<{name: string, status: 'success' | 'error' | 'warning' | 'running' | 'pending' | 'skipped', failureReason: string | null}>>;
 
-  const commitMessages = [
-    `feat: add new dashboard features`,
-    `fix: resolve login issue`,
-    `chore: update dependencies`,
-    `refactor: improve pipeline performance`,
-    `docs: update README.md`,
-    `test: add unit tests for auth module`,
-    `style: format code according to style guide`,
-    `ci: update CI configuration`
-  ];
-
-  const authors = [
-    "John Doe",
-    "Jane Smith",
-    "Alex Johnson",
-    "Taylor Williams",
-    "Sam Brown"
-  ];
-
-  // Generate 5-7 random pipelines
-  const pipelineCount = Math.floor(Math.random() * 3) + 5;
+  // Generate the last 5 pipeline runs (not including skipped ones)
   const now = new Date();
   
-  return Array.from({ length: pipelineCount }).map((_, idx) => {
-    const status = statuses[Math.floor(Math.random() * statuses.length)];
-    const stageTemplate = stageTemplates[Math.floor(Math.random() * stageTemplates.length)];
-    const commitMessage = commitMessages[Math.floor(Math.random() * commitMessages.length)];
-    const author = authors[Math.floor(Math.random() * authors.length)];
+  // Create 7 pipelines initially so we can filter out skipped ones later
+  const allPipelines = Array.from({ length: 7 }).map((_, idx) => {
+    // Determine if this pipeline should be marked as skipped (we'll filter these out later)
+    const isSkipped = idx === 1 || idx === 3; // Mark the 2nd and 4th pipelines as skipped
     
-    // Random duration between 1-30 minutes
-    const durationMinutes = Math.floor(Math.random() * 30) + 1;
-    const durationSeconds = Math.floor(Math.random() * 60);
+    // For non-skipped pipelines, assign a realistic status
+    const status = isSkipped ? 'skipped' : (
+      idx === 0 ? 'running' :
+      idx === 2 ? 'error' :
+      idx === 4 ? 'warning' :
+      'success'
+    ) as 'success' | 'error' | 'warning' | 'running' | 'pending' | 'skipped';
     
-    // Random start time within the last 3 days
+    // Get a template based on status
+    const templateIndex = status === 'error' ? 1 : 
+                          status === 'warning' ? 4 :
+                          status === 'running' ? 4 :
+                          Math.floor(Math.random() * 3); // random among other templates
+    
+    const stageTemplate = stageTemplates[templateIndex];
+    
+    // Select author and commit info
+    const authorIndex = Math.floor(Math.random() * authors.length);
+    const commitMessageIndex = Math.floor(Math.random() * commitMessages.length);
+    
+    // Create realistic timestamps - each pipeline is ~2-8 hours apart
+    const hoursAgo = idx * 2 + Math.floor(Math.random() * 6); // 2-8 hours between pipelines
     const startedAt = new Date(now);
-    startedAt.setMinutes(startedAt.getMinutes() - Math.floor(Math.random() * 4320)); // Random time in the last 3 days
+    startedAt.setHours(startedAt.getHours() - hoursAgo);
+    
+    // Realistic duration based on stages
+    const durationMinutes = stageTemplate.length * 3 + Math.floor(Math.random() * 10);
+    const durationSeconds = Math.floor(Math.random() * 60);
     
     // Format duration
     let duration = '';
@@ -89,23 +115,32 @@ export const generateMockPipelineData = (repoUrl: string): Pipeline[] => {
     }
     duration += `${durationSeconds}s`;
     
-    // Generate mock commit hash
+    // Generate realistic commit hash
     const commitHash = Array.from({ length: 40 }, () => 
       Math.floor(Math.random() * 16).toString(16)).join('');
 
+    // Realistic pipeline number - increment for each new run
+    const pipelineNumber = 1000 - idx;
+
     return {
-      id: `${repoName}-pipeline-${idx + 1}`,
-      name: `${repoName} #${idx + 1}`,
-      status,
+      id: `${repoName}-pipeline-${pipelineNumber}`,
+      name: `${repoName} #${pipelineNumber}`,
+      status: isSkipped ? 'skipped' : status,
       commit: {
         id: commitHash,
-        message: commitMessage,
-        author
+        message: commitMessages[commitMessageIndex],
+        author: authors[authorIndex].name,
+        email: authors[authorIndex].email
       },
       startedAt: startedAt.toISOString(),
       duration,
       stages: stageTemplate,
-      url: `${repoUrl}/actions/runs/${100 + idx}`
+      url: `${repoUrl}/pipelines/${pipelineNumber}`
     };
   });
+
+  // Filter out skipped pipelines and return only the last 5
+  return allPipelines
+    .filter(pipeline => pipeline.status !== 'skipped')
+    .slice(0, 5);
 };

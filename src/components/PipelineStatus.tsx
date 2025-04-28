@@ -1,9 +1,9 @@
 
 import React from 'react';
-import { CheckCircle, AlertCircle, Clock, Play, XCircle } from 'lucide-react';
+import { CheckCircle, AlertCircle, Clock, Play, XCircle, SkipForward } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
-type StatusType = 'success' | 'error' | 'warning' | 'running' | 'pending';
+type StatusType = 'success' | 'error' | 'warning' | 'running' | 'pending' | 'skipped';
 
 interface PipelineStatusProps {
   status: StatusType;
@@ -56,6 +56,13 @@ const PipelineStatus: React.FC<PipelineStatusProps> = ({
       color: 'text-pipeline-pending',
       text: 'Pending',
       bgColor: 'bg-pipeline-pending/10',
+      animate: false
+    },
+    skipped: {
+      icon: SkipForward,
+      color: 'text-muted-foreground',
+      text: 'Skipped',
+      bgColor: 'bg-muted/30',
       animate: false
     }
   };

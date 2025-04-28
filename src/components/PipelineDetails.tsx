@@ -1,9 +1,10 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import PipelineStatus from './PipelineStatus';
 import { type Pipeline } from './PipelineCard';
-import { Clock, GitCommit, GitBranch, User, Calendar, ArrowDown } from 'lucide-react';
+import { Clock, GitCommit, GitBranch, User, Calendar, Mail, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface PipelineDetailsProps {
@@ -55,6 +56,13 @@ const PipelineDetails: React.FC<PipelineDetailsProps> = ({ pipeline, onClose }) 
                       <span className="text-muted-foreground mr-1">Author:</span>
                       <span>{pipeline.commit.author}</span>
                     </div>
+                    {pipeline.commit.email && (
+                      <div className="flex items-center">
+                        <Mail className="h-3 w-3 mr-1 text-muted-foreground" />
+                        <span className="text-muted-foreground mr-1">Email:</span>
+                        <span>{pipeline.commit.email}</span>
+                      </div>
+                    )}
                     <div className="flex items-center">
                       <GitCommit className="h-3 w-3 mr-1 text-muted-foreground" />
                       <span className="text-muted-foreground mr-1">Commit:</span>
@@ -98,6 +106,7 @@ const PipelineDetails: React.FC<PipelineDetailsProps> = ({ pipeline, onClose }) 
                       pipeline.status === 'error' ? 'text-pipeline-error' :
                       pipeline.status === 'warning' ? 'text-pipeline-warning' :
                       pipeline.status === 'running' ? 'text-pipeline-running' :
+                      pipeline.status === 'skipped' ? 'text-muted-foreground' :
                       'text-pipeline-pending'
                     }`}>
                       {pipeline.status.charAt(0).toUpperCase() + pipeline.status.slice(1)}
@@ -112,7 +121,8 @@ const PipelineDetails: React.FC<PipelineDetailsProps> = ({ pipeline, onClose }) 
                     <span className="text-sm font-medium">
                       {pipeline.stages.filter(stage => 
                         stage.status === 'success' || 
-                        stage.status === 'error'
+                        stage.status === 'error' ||
+                        stage.status === 'warning'
                       ).length} / {pipeline.stages.length}
                     </span>
                   </div>
@@ -133,6 +143,7 @@ const PipelineDetails: React.FC<PipelineDetailsProps> = ({ pipeline, onClose }) 
                         stage.status === 'error' ? 'bg-pipeline-error' :
                         stage.status === 'warning' ? 'bg-pipeline-warning' :
                         stage.status === 'running' ? 'bg-pipeline-running' :
+                        stage.status === 'skipped' ? 'bg-muted' :
                         'bg-pipeline-pending'
                       }`}>
                         <span className="text-white text-xs font-bold">{index + 1}</span>
@@ -146,6 +157,24 @@ const PipelineDetails: React.FC<PipelineDetailsProps> = ({ pipeline, onClose }) 
                         <h4 className="font-medium">{stage.name}</h4>
                         <PipelineStatus status={stage.status} size="sm" />
                       </div>
+                      
+                      {stage.failureReason && stage.status === 'error' && (
+                        <div className="mt-2 p-2 bg-pipeline-error/10 rounded-sm border-l-2 border-pipeline-error">
+                          <div className="flex items-start">
+                            <AlertTriangle className="h-4 w-4 mr-2 text-pipeline-error mt-0.5" />
+                            <p className="text-xs">{stage.failureReason}</p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {stage.failureReason && stage.status === 'warning' && (
+                        <div className="mt-2 p-2 bg-pipeline-warning/10 rounded-sm border-l-2 border-pipeline-warning">
+                          <div className="flex items-start">
+                            <AlertTriangle className="h-4 w-4 mr-2 text-pipeline-warning mt-0.5" />
+                            <p className="text-xs">{stage.failureReason}</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
