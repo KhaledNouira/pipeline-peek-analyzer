@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import PipelineStatus from './PipelineStatus';
 import { type Pipeline } from './PipelineCard';
-import { Clock, GitCommit, Git, User, Calendar, ArrowDown } from 'lucide-react';
+import { Clock, GitCommit, GitBranch, User, Calendar, ArrowDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface PipelineDetailsProps {
@@ -47,7 +46,7 @@ const PipelineDetails: React.FC<PipelineDetailsProps> = ({ pipeline, onClose }) 
             <h3 className="text-sm font-medium mb-2">Commit Information</h3>
             <div className="bg-muted p-3 rounded-md">
               <div className="flex items-start">
-                <Git className="h-4 w-4 mt-1 mr-2 text-muted-foreground" />
+                <GitBranch className="h-4 w-4 mt-1 mr-2 text-muted-foreground" />
                 <div className="space-y-1 w-full">
                   <p className="font-medium break-all">{pipeline.commit.message}</p>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-y-1 sm:gap-x-4 text-sm">

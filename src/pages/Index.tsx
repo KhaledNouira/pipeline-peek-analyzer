@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -26,14 +25,11 @@ const Index = () => {
     setRepository(repoUrl);
     
     try {
-      // In a real app, this would be an API call to your backend
-      // For now, we're using mock data
       await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API delay
       
       const pipelineData = generateMockPipelineData(repoUrl);
       setPipelines(pipelineData);
       
-      // Add to history if not already present
       if (!history.includes(repoUrl)) {
         setHistory(prev => [repoUrl, ...prev.slice(0, 4)]);
       }
@@ -168,7 +164,7 @@ const Index = () => {
       </main>
       
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl" showCloseButton={false}>
+        <DialogContent className="max-w-2xl">
           <PipelineDetails pipeline={selectedPipeline} onClose={() => setDialogOpen(false)} />
         </DialogContent>
       </Dialog>
