@@ -26,13 +26,13 @@ const RepositoryForm: React.FC<RepositoryFormProps> = ({ onSubmit, isLoading }) 
       return;
     }
     
-    // Basic validation for GitHub, GitLab, or Bitbucket URLs
-    const validUrlPattern = /^https:\/\/(github\.com|gitlab\.com|bitbucket\.org)\/[\w-]+\/[\w.-]+\/?.*$/i;
+    // Updated validation pattern to include git.vermeg.com
+    const validUrlPattern = /^https:\/\/(git\.vermeg\.com|github\.com|gitlab\.com|bitbucket\.org)\/[\w-]+\/[\w.-]+\/?.*$/i;
     
     if (!validUrlPattern.test(repoUrl)) {
       toast({
         title: "Invalid Repository URL",
-        description: "Please enter a valid GitHub, GitLab, or Bitbucket repository URL",
+        description: "Please enter a valid repository URL from git.vermeg.com, GitHub, GitLab, or Bitbucket",
         variant: "destructive",
       });
       return;
@@ -48,7 +48,7 @@ const RepositoryForm: React.FC<RepositoryFormProps> = ({ onSubmit, isLoading }) 
         <div className="flex space-x-2">
           <Input
             id="repo-url"
-            placeholder="https://github.com/username/repository"
+            placeholder="https://git.vermeg.com/organisation/repository"
             value={repoUrl}
             onChange={(e) => setRepoUrl(e.target.value)}
             className="flex-1"
@@ -73,7 +73,7 @@ const RepositoryForm: React.FC<RepositoryFormProps> = ({ onSubmit, isLoading }) 
         </div>
       </div>
       <div className="text-xs text-muted-foreground">
-        Enter the URL of a GitHub, GitLab, or Bitbucket repository to analyze its pipelines
+        Enter the URL of a repository from git.vermeg.com, GitHub, GitLab, or Bitbucket to analyze its pipelines
       </div>
     </form>
   );
