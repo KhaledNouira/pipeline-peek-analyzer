@@ -46,44 +46,44 @@ export const generateMockPipelineData = (repoUrl: string): Pipeline[] => {
   // Template for stages with realistic steps based on repository
   const stageTemplates = isBigDataWeb ? [
     [
-      { name: "Build", status: "success", failureReason: null },
-      { name: "Unit Tests", status: "success", failureReason: null },
-      { name: "Integration Tests", status: "success", failureReason: null },
-      { name: "Deploy", status: "success", failureReason: null }
+      { name: "Build", status: "success" as const, failureReason: null },
+      { name: "Unit Tests", status: "success" as const, failureReason: null },
+      { name: "Integration Tests", status: "success" as const, failureReason: null },
+      { name: "Deploy", status: "success" as const, failureReason: null }
     ],
     [
-      { name: "Build", status: "success", failureReason: null },
-      { name: "Unit Tests", status: "error", failureReason: "Test failed in DataProcessorTest.java: Expected result to contain 15 records but found 12" },
-      { name: "Integration Tests", status: "pending", failureReason: null },
-      { name: "Deploy", status: "pending", failureReason: null }
+      { name: "Build", status: "success" as const, failureReason: null },
+      { name: "Unit Tests", status: "error" as const, failureReason: "Test failed in DataProcessorTest.java: Expected result to contain 15 records but found 12" },
+      { name: "Integration Tests", status: "pending" as const, failureReason: null },
+      { name: "Deploy", status: "pending" as const, failureReason: null }
     ],
     [
-      { name: "Lint", status: "success", failureReason: null },
-      { name: "Build", status: "success", failureReason: null },
-      { name: "Unit Tests", status: "success", failureReason: null },
-      { name: "Integration Tests", status: "error", failureReason: "Connection timeout after 30s while connecting to test database" },
-      { name: "Deploy", status: "pending", failureReason: null }
+      { name: "Lint", status: "success" as const, failureReason: null },
+      { name: "Build", status: "success" as const, failureReason: null },
+      { name: "Unit Tests", status: "success" as const, failureReason: null },
+      { name: "Integration Tests", status: "error" as const, failureReason: "Connection timeout after 30s while connecting to test database" },
+      { name: "Deploy", status: "pending" as const, failureReason: null }
     ]
   ] : [
     [
-      { name: "Compile", status: "success", failureReason: null },
-      { name: "Test Data Generation", status: "success", failureReason: null },
-      { name: "Test Execution", status: "success", failureReason: null },
-      { name: "Test Report", status: "success", failureReason: null }
+      { name: "Compile", status: "success" as const, failureReason: null },
+      { name: "Test Data Generation", status: "success" as const, failureReason: null },
+      { name: "Test Execution", status: "success" as const, failureReason: null },
+      { name: "Test Report", status: "success" as const, failureReason: null }
     ],
     [
-      { name: "Compile", status: "success", failureReason: null },
-      { name: "Test Data Generation", status: "error", failureReason: "Failed to generate test data: Invalid schema definition in TestConfig.xml" },
-      { name: "Test Execution", status: "skipped", failureReason: null },
-      { name: "Test Report", status: "skipped", failureReason: null }
+      { name: "Compile", status: "success" as const, failureReason: null },
+      { name: "Test Data Generation", status: "error" as const, failureReason: "Failed to generate test data: Invalid schema definition in TestConfig.xml" },
+      { name: "Test Execution", status: "skipped" as const, failureReason: null },
+      { name: "Test Report", status: "skipped" as const, failureReason: null }
     ],
     [
-      { name: "Compile", status: "success", failureReason: null },
-      { name: "Test Data Generation", status: "success", failureReason: null },
-      { name: "Test Execution", status: "warning", failureReason: "5 tests skipped due to environment configuration" },
-      { name: "Test Report", status: "success", failureReason: null }
+      { name: "Compile", status: "success" as const, failureReason: null },
+      { name: "Test Data Generation", status: "success" as const, failureReason: null },
+      { name: "Test Execution", status: "warning" as const, failureReason: "5 tests skipped due to environment configuration" },
+      { name: "Test Report", status: "success" as const, failureReason: null }
     ]
-  ] as Array<Array<{name: string, status: 'success' | 'error' | 'warning' | 'running' | 'pending' | 'skipped', failureReason: string | null}>>;
+  ];
 
   // Generate realistic pipeline dates - 5 days span with the most recent being today
   const now = new Date();
@@ -94,12 +94,12 @@ export const generateMockPipelineData = (repoUrl: string): Pipeline[] => {
     const isSkipped = idx === 1 || idx === 3 || idx === 7; 
     
     // For non-skipped pipelines, assign a realistic status
-    const status = isSkipped ? 'skipped' : (
-      idx === 0 ? 'running' :
-      idx === 2 ? 'error' :
-      idx === 4 ? 'warning' :
-      'success'
-    ) as 'success' | 'error' | 'warning' | 'running' | 'pending' | 'skipped';
+    const status = isSkipped ? 'skipped' as const : (
+      idx === 0 ? 'running' as const :
+      idx === 2 ? 'error' as const :
+      idx === 4 ? 'warning' as const :
+      'success' as const
+    );
     
     // Get a template based on status
     const templateIndex = status === 'error' ? 1 : 
@@ -141,7 +141,7 @@ export const generateMockPipelineData = (repoUrl: string): Pipeline[] => {
     return {
       id: `${repoName}-pipeline-${pipelineNumber}`,
       name: `${repoName} #${pipelineNumber}`,
-      status: isSkipped ? 'skipped' : status,
+      status,
       commit: {
         id: commitHash,
         message: commitMessages[commitMessageIndex],
