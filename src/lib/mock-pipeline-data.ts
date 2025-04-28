@@ -1,8 +1,81 @@
 
 import { type Pipeline } from "@/components/PipelineCard";
 
-// A function to generate mock pipeline data for demonstration
-export const generateMockPipelineData = (repoUrl: string): Pipeline[] => {
+// A function to fetch or generate mock pipeline data
+export const generateMockPipelineData = async (repoUrl: string): Promise<Pipeline[]> => {
+  try {
+    // Try to fetch real data from GitLab API
+    return await fetchGitLabPipelines(repoUrl);
+  } catch (error) {
+    // If API fails, fall back to mock data
+    console.error("Error fetching GitLab pipelines:", error);
+    return generateFallbackData(repoUrl);
+  }
+};
+
+// Function to fetch real pipeline data from GitLab API
+async function fetchGitLabPipelines(repoUrl: string): Promise<Pipeline[]> {
+  // Extract project path from URL
+  const projectPath = extractProjectPathFromUrl(repoUrl);
+  if (!projectPath) {
+    throw new Error("Invalid GitLab repository URL");
+  }
+
+  // Encode the project path for API
+  const encodedProjectPath = encodeURIComponent(projectPath);
+  
+  // GitLab API URL for pipelines
+  // Note: This would typically need an access token for private repositories
+  const apiUrl = `https://git.vermeg.com/api/v4/projects/${encodedProjectPath}/pipelines?per_page=10`;
+
+  // You would need a token for authentication with most GitLab instances
+  // const headers = { 'PRIVATE-TOKEN': 'your_access_token' };
+  
+  // For this simulation, we'll throw an error since we can't actually access the API
+  throw new Error("GitLab API access requires authentication token");
+  
+  // If you had a token, you would make the actual API request:
+  /*
+  const response = await fetch(apiUrl, { headers });
+  if (!response.ok) {
+    throw new Error(`GitLab API returned ${response.status}: ${await response.text()}`);
+  }
+  
+  const pipelines = await response.json();
+  
+  // Filter out skipped pipelines and take only the last 5
+  const filteredPipelines = pipelines
+    .filter(p => p.status !== 'skipped')
+    .slice(0, 5);
+    
+  // We would need additional API calls to get details for each pipeline
+  return Promise.all(filteredPipelines.map(async pipeline => {
+    // Get pipeline details, commits, etc.
+    return transformGitLabPipelineToOurFormat(pipeline);
+  }));
+  */
+}
+
+// Helper function to extract project path from GitLab URL
+function extractProjectPathFromUrl(url: string): string | null {
+  try {
+    const gitlabUrl = new URL(url);
+    // Remove leading and trailing slashes, then get the path
+    const pathParts = gitlabUrl.pathname.replace(/^\/|\/$/g, '').split('/');
+    
+    // For example: Palmyra-Group/Palmyra-IntegrationTests/automatictests/automatictest-core/bigdatatest
+    if (pathParts.length >= 2) {
+      return pathParts.join('/').replace(/\.git$/, '');
+    }
+    return null;
+  } catch (e) {
+    console.error("Error parsing URL:", e);
+    return null;
+  }
+}
+
+// Fallback function to generate realistic mock data for the specific GitLab repositories
+function generateFallbackData(repoUrl: string): Pipeline[] {
   // Extract repo name for use in mock data
   let repoName = "repository";
   try {
@@ -15,7 +88,7 @@ export const generateMockPipelineData = (repoUrl: string): Pipeline[] => {
   
   const isBigDataWeb = repoName.toLowerCase().includes('bigdataweb');
 
-  // Real authors with proper names for the specific projects
+  // GitLab-specific authors with proper names for these projects
   const authors = [
     { name: "Mohammed Trabelsi", email: "mtrabelsi@vermeg.com" },
     { name: "Sarah Ben Salem", email: "sbensalem@vermeg.com" },
@@ -24,26 +97,22 @@ export const generateMockPipelineData = (repoUrl: string): Pipeline[] => {
     { name: "Omar Belkhodja", email: "obelkhodja@vermeg.com" }
   ];
 
-  // More realistic commit messages for these specific repositories
+  // GitLab-specific commit messages for these repositories
   const commitMessages = isBigDataWeb ? [
     `fix(web): resolve memory leak in data processing module`,
     `feat(dashboard): implement new BigData visualization components`,
     `chore(deps): update third-party dependencies for BigDataWeb`,
     `test(api): add integration tests for data endpoints`,
-    `refactor(services): improve error handling in pipeline executor`,
-    `docs(readme): update BigDataWeb deployment instructions`,
-    `fix(security): address vulnerability in data access flow`
+    `refactor(services): improve error handling in pipeline executor`
   ] : [
     `fix(core): resolve issue with test data generation`,
     `feat(test): add new test scenarios for data validation`,
     `chore(deps): update test dependencies`,
     `test(runner): enhance test runner performance`,
-    `refactor(framework): improve error handling in test framework`,
-    `docs(readme): update test execution instructions`,
-    `fix(security): patch dependency vulnerability in test framework`
+    `refactor(framework): improve error handling in test framework`
   ];
 
-  // Template for stages with realistic steps based on repository
+  // GitLab-specific stage templates based on repository type
   const stageTemplates = isBigDataWeb ? [
     [
       { name: "Build", status: "success" as const, failureReason: null },
@@ -88,12 +157,10 @@ export const generateMockPipelineData = (repoUrl: string): Pipeline[] => {
   // Generate realistic pipeline dates - 5 days span with the most recent being today
   const now = new Date();
   
-  // Create more than 5 pipelines initially so we can filter out skipped ones later
+  // Create pipeline data specifically for GitLab-style pipelines
   const allPipelines = Array.from({ length: 10 }).map((_, idx) => {
-    // Determine if this pipeline should be marked as skipped
     const isSkipped = idx === 1 || idx === 3 || idx === 7; 
     
-    // For non-skipped pipelines, assign a realistic status
     const status = isSkipped ? 'skipped' as const : (
       idx === 0 ? 'running' as const :
       idx === 2 ? 'error' as const :
@@ -101,7 +168,6 @@ export const generateMockPipelineData = (repoUrl: string): Pipeline[] => {
       'success' as const
     );
     
-    // Get a template based on status
     const templateIndex = status === 'error' ? 1 : 
                           status === 'warning' ? 2 :
                           status === 'running' ? 0 :
@@ -110,33 +176,33 @@ export const generateMockPipelineData = (repoUrl: string): Pipeline[] => {
     const stageTemplate = stageTemplates[templateIndex];
     
     // Create realistic date - each pipeline is ~12-24 hours apart
-    const daysAgo = Math.floor(idx / 2);  // Every 2 pipelines is roughly 1 day
-    const hoursOffset = (idx % 2) * 12;   // Either morning or evening
+    const daysAgo = Math.floor(idx / 2);
+    const hoursOffset = (idx % 2) * 12;
     const startedAt = new Date(now);
     startedAt.setDate(startedAt.getDate() - daysAgo);
     startedAt.setHours(startedAt.getHours() - hoursOffset);
     
-    // Select author and commit info
     const authorIndex = Math.floor(Math.random() * authors.length);
     const commitMessageIndex = Math.floor(Math.random() * commitMessages.length);
     
-    // Realistic duration based on stages - complex pipelines take longer
     const durationMinutes = stageTemplate.length * 5 + Math.floor(Math.random() * 15);
     const durationSeconds = Math.floor(Math.random() * 60);
     
-    // Format duration
     let duration = '';
     if (durationMinutes > 0) {
       duration += `${durationMinutes}m `;
     }
     duration += `${durationSeconds}s`;
     
-    // Generate realistic commit hash
+    // Generate realistic commit hash (40 characters for GitLab)
     const commitHash = Array.from({ length: 40 }, () => 
       Math.floor(Math.random() * 16).toString(16)).join('');
 
-    // Realistic pipeline number - start from a high number and decrement
+    // GitLab-style pipeline number (incremental from a high base)
     const pipelineNumber = 1250 - idx;
+    
+    // GitLab-specific pipeline URL format
+    const pipelineUrl = `${repoUrl.replace('.git', '')}/-/pipelines/${pipelineNumber}`;
 
     return {
       id: `${repoName}-pipeline-${pipelineNumber}`,
@@ -151,7 +217,7 @@ export const generateMockPipelineData = (repoUrl: string): Pipeline[] => {
       startedAt: startedAt.toISOString(),
       duration,
       stages: stageTemplate,
-      url: `${repoUrl.replace('.git', '')}/pipelines/${pipelineNumber}`
+      url: pipelineUrl
     };
   });
 
@@ -159,4 +225,4 @@ export const generateMockPipelineData = (repoUrl: string): Pipeline[] => {
   return allPipelines
     .filter(pipeline => pipeline.status !== 'skipped')
     .slice(0, 5);
-};
+}

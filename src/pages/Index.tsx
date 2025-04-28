@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -19,15 +20,16 @@ const Index = () => {
   const [selectedPipeline, setSelectedPipeline] = useState<Pipeline | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [history, setHistory] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const handleAnalyzeRepository = async (repoUrl: string) => {
     setIsLoading(true);
     setRepository(repoUrl);
+    setError(null);
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API delay
-      
-      const pipelineData = generateMockPipelineData(repoUrl);
+      // Note that generateMockPipelineData is now async
+      const pipelineData = await generateMockPipelineData(repoUrl);
       setPipelines(pipelineData);
       
       if (!history.includes(repoUrl)) {
@@ -40,9 +42,10 @@ const Index = () => {
       });
     } catch (error) {
       console.error("Error analyzing repository:", error);
+      setError("Failed to fetch pipeline data. GitLab API requires authentication.");
       toast({
         title: "Error",
-        description: "Failed to analyze repository pipelines",
+        description: "Failed to analyze repository pipelines. GitLab API requires authentication.",
         variant: "destructive",
       });
       setPipelines([]);
@@ -67,6 +70,19 @@ const Index = () => {
           {Array.from({ length: 6 }).map((_, index) => (
             <PipelineSkeleton key={index} />
           ))}
+        </div>
+      );
+    }
+
+    if (error) {
+      return (
+        <div className="border border-destructive/50 bg-destructive/10 rounded-lg p-6 text-center">
+          <h3 className="font-semibold text-lg mb-2">API Access Error</h3>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <p className="text-sm">
+            Note: GitLab API requires authentication for private repositories. 
+            This app is currently using simulated data that resembles GitLab pipelines.
+          </p>
         </div>
       );
     }

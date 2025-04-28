@@ -49,7 +49,7 @@ const RepositoryForm: React.FC<RepositoryFormProps> = ({ onSubmit, isLoading }) 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md">
       <div className="space-y-2">
-        <Label htmlFor="repo-url">Repository</Label>
+        <Label htmlFor="repo-url">GitLab Repository</Label>
         <div className="flex space-x-2">
           <Select value={repoUrl} onValueChange={setRepoUrl}>
             <SelectTrigger className="flex-1">
@@ -82,7 +82,7 @@ const RepositoryForm: React.FC<RepositoryFormProps> = ({ onSubmit, isLoading }) 
         </div>
       </div>
       <div className="text-xs text-muted-foreground">
-        Select one of the Vermeg GitLab repositories to analyze its pipelines
+        Select one of the Vermeg GitLab repositories to analyze its pipelines (using simulated GitLab pipeline data)
       </div>
     </form>
   );
