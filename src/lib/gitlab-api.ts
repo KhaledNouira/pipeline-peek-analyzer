@@ -1,4 +1,3 @@
-
 import { type Pipeline } from "@/components/PipelineCard";
 import * as XLSX from "xlsx";
 
@@ -111,15 +110,8 @@ export const fetchGitLabPipelines = async (
     // Format the URL to view the pipeline in GitLab
     const pipelineUrl = `${repoUrl.replace('.git', '')}/-/pipelines/${pipeline.id}`;
     
-    // Extract Palmyra version - try to find it in commit message or variables
-    let palmyraVersion = "Unknown";
-    
-    // Check if there's a version in commit message (e.g., "Update to Palmyra v5.2.1")
-    const versionRegex = /palmyra\s+(?:version|v)?[:\s]*([\d\.]+)/i;
-    const commitMessageMatch = commitDetails.message.match(versionRegex);
-    if (commitMessageMatch && commitMessageMatch[1]) {
-      palmyraVersion = commitMessageMatch[1];
-    }
+    // Use the ref field as the Palmyra version (instead of trying to extract it from commit message)
+    const palmyraVersion = pipeline.ref || "Unknown";
     
     // Construct pipeline object in our app's format
     return {
