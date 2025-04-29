@@ -43,6 +43,26 @@ const RepositoryForm: React.FC<RepositoryFormProps> = ({ onSubmit, isLoading }) 
     {
       value: "https://git.vermeg.com/Palmyra-Group/Palmyra-IntegrationTests/automatictests/automatictest-core/bigdatatest.git",
       label: "bigdatatest"
+    },
+    {
+      value: "https://git.vermeg.com/Palmyra-Group/Palmyra-IntegrationTests/automatictests/IntegrationTest.git",
+      label: "IntegrationTest"
+    },
+    {
+      value: "https://git.vermeg.com/Palmyra-Group/Palmyra-IntegrationTests/automatictests/securitytest3.git",
+      label: "securitytest3"
+    },
+    {
+      value: "https://git.vermeg.com/Palmyra-Group/QA/automatisation/automatic-project-creation/entreprise-project-vermeg/hap.git",
+      label: "HAP"
+    },
+    {
+      value: "https://git.vermeg.com/Palmyra-Group/QA/automatisation/automation-hotfix.git",
+      label: "automation-hotfix"
+    },
+    {
+      value: "https://git.vermeg.com/Palmyra-Group/Palmyra-IntegrationTests/automatictests/SecurityTest.git",
+      label: "SecurityTest"
     }
   ];
   
