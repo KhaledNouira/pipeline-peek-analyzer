@@ -1,227 +1,128 @@
 
-import React, { useState } from 'react';
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { fetchGitLabPipelines, exportPipelinesToExcel } from "@/lib/gitlab-api";
+import RepositoryForm from "@/components/RepositoryForm";
 import { useToast } from "@/hooks/use-toast";
-import RepositoryForm from '@/components/RepositoryForm';
-import PipelineCard, { type Pipeline } from '@/components/PipelineCard';
-import PipelineDetails from '@/components/PipelineDetails';
-import EmptyState from '@/components/EmptyState';
-import PipelineSkeleton from '@/components/PipelineSkeleton';
-import { fetchGitLabPipelines, exportPipelinesToExcel } from '@/lib/gitlab-api';
-import { History, GitBranch, FileText } from 'lucide-react';
+import { FileText, BarChart2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import PipelineCard from "@/components/PipelineCard";
+import PipelineSkeleton from "@/components/PipelineSkeleton";
+import EmptyState from "@/components/EmptyState";
+import { type Pipeline } from "@/components/PipelineCard";
 
 const Index = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [repository, setRepository] = useState<string | null>(null);
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
-  const [selectedPipeline, setSelectedPipeline] = useState<Pipeline | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [history, setHistory] = useState<{url: string, token: string, dateFrom?: Date | null, dateTo?: Date | null}[]>([]);
-  const [error, setError] = useState<string | null>(null);
 
-  const handleAnalyzeRepository = async (
-    repoUrl: string, 
-    token: string, 
-    dateFrom?: Date | null, 
-    dateTo?: Date | null
-  ) => {
+  const handleFetchPipelines = async (repoUrl: string, token: string, dateFrom?: Date | null, dateTo?: Date | null) => {
     setIsLoading(true);
-    setRepository(repoUrl);
-    setError(null);
-    
+
     try {
-      const pipelineData = await fetchGitLabPipelines(repoUrl, token, dateFrom, dateTo);
-      setPipelines(pipelineData);
-      
-      // Add to history if not already present
-      if (!history.some(item => item.url === repoUrl)) {
-        setHistory(prev => [{url: repoUrl, token, dateFrom, dateTo}, ...prev.slice(0, 4)]);
+      const data = await fetchGitLabPipelines(repoUrl, token, dateFrom, dateTo);
+      setPipelines(data);
+
+      // Store repository info in localStorage for future use
+      const repositories = getStoredRepositories();
+      const existingRepoIndex = repositories.findIndex(
+        (repo: { url: string }) => repo.url === repoUrl
+      );
+
+      if (existingRepoIndex >= 0) {
+        repositories[existingRepoIndex] = { url: repoUrl, token };
+      } else {
+        repositories.push({ url: repoUrl, token });
       }
-      
-      toast({
-        title: "Analysis Complete",
-        description: `Found ${pipelineData.length} pipelines for the repository`,
-      });
+
+      localStorage.setItem("repositories", JSON.stringify(repositories));
     } catch (error) {
-      console.error("Error analyzing repository:", error);
-      setError(`Failed to fetch pipeline data: ${error instanceof Error ? error.message : String(error)}`);
+      console.error("Error fetching pipelines:", error);
       toast({
         title: "Error",
-        description: "Failed to analyze repository pipelines. Check your token and try again.",
+        description: error instanceof Error ? error.message : "Failed to fetch pipelines",
         variant: "destructive",
       });
-      setPipelines([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handlePipelineClick = (pipeline: Pipeline) => {
-    setSelectedPipeline(pipeline);
-    setDialogOpen(true);
-  };
+  const handleExportToExcel = () => {
+    if (pipelines.length === 0) {
+      toast({
+        title: "No data to export",
+        description: "Please fetch some pipelines first.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  const handleHistoryItemClick = (url: string, token: string, dateFrom?: Date | null, dateTo?: Date | null) => {
-    handleAnalyzeRepository(url, token, dateFrom, dateTo);
-  };
-
-  const handleExportExcel = () => {
     try {
       exportPipelinesToExcel(pipelines);
       toast({
         title: "Export Successful",
-        description: "Pipeline data has been exported to Excel"
+        description: "Pipelines data has been exported to Excel.",
       });
     } catch (error) {
-      console.error("Error exporting to Excel:", error);
+      console.error("Export error:", error);
       toast({
         title: "Export Failed",
-        description: "Failed to export pipeline data to Excel",
-        variant: "destructive"
+        description: "Failed to export pipelines data.",
+        variant: "destructive",
       });
     }
   };
 
-  const renderContent = () => {
-    if (isLoading) {
-      return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <PipelineSkeleton key={index} />
-          ))}
-        </div>
-      );
-    }
-
-    if (error) {
-      return (
-        <div className="border border-destructive/50 bg-destructive/10 rounded-lg p-6 text-center">
-          <h3 className="font-semibold text-lg mb-2">API Access Error</h3>
-          <p className="text-muted-foreground mb-4">{error}</p>
-          <p className="text-sm">
-            Make sure your GitLab token has the appropriate permissions to access the API and the repository.
-          </p>
-        </div>
-      );
-    }
-
-    if (!repository || pipelines.length === 0) {
-      return <EmptyState />;
-    }
-
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {pipelines.map((pipeline) => (
-          <PipelineCard
-            key={pipeline.id}
-            pipeline={pipeline}
-            onClick={handlePipelineClick}
-          />
-        ))}
-      </div>
-    );
+  const getStoredRepositories = () => {
+    const storedRepos = localStorage.getItem("repositories");
+    return storedRepos ? JSON.parse(storedRepos) : [];
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b py-6">
-        <div className="container">
-          <h1 className="text-2xl md:text-3xl font-bold flex items-center">
-            <GitBranch className="mr-2 h-6 w-6" />
-            Pipeline Peek Analyzer
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Analyze and visualize CI/CD pipelines across repositories
-          </p>
+    <div className="container mx-auto py-8 px-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <h1 className="text-3xl font-bold">Pipeline Monitor</h1>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleExportToExcel}
+            disabled={pipelines.length === 0 || isLoading}
+            className="flex items-center gap-2"
+          >
+            <FileText className="h-4 w-4" />
+            Export to Excel
+          </Button>
+          <Button variant="outline" asChild>
+            <Link to="/analysis" className="flex items-center gap-2">
+              <BarChart2 className="h-4 w-4" />
+              Advanced Analysis
+            </Link>
+          </Button>
         </div>
-      </header>
-      
-      <main className="container py-8 space-y-8">
-        <div className="flex flex-col md:flex-row gap-4 md:items-end">
-          <div className="flex-1">
-            <RepositoryForm 
-              onSubmit={handleAnalyzeRepository}
-              isLoading={isLoading}
-            />
+      </div>
+
+      <RepositoryForm onSubmit={handleFetchPipelines} isLoading={isLoading} />
+
+      <div className="mt-8 space-y-6">
+        {isLoading ? (
+          <div className="grid grid-cols-1 gap-6">
+            {[1, 2, 3].map((i) => (
+              <PipelineSkeleton key={i} />
+            ))}
           </div>
-          
-          {history.length > 0 && (
-            <div className="w-full md:w-auto">
-              <Tabs defaultValue="recent">
-                <TabsList className="w-full md:w-auto">
-                  <TabsTrigger value="recent" className="flex items-center">
-                    <History className="h-4 w-4 mr-1" />
-                    Recent
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="recent" className="mt-2">
-                  <div className="flex flex-wrap gap-2">
-                    {history.map((item, index) => (
-                      <Button 
-                        key={`${item.url}-${index}`}
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleHistoryItemClick(item.url, item.token, item.dateFrom, item.dateTo)}
-                        className="text-xs"
-                      >
-                        {(() => {
-                          try {
-                            const parsed = new URL(item.url);
-                            const pathParts = parsed.pathname.split('/').filter(Boolean);
-                            if (pathParts.length >= 2) {
-                              return pathParts[pathParts.length - 1].replace('.git', '');
-                            }
-                            return item.url;
-                          } catch {
-                            return item.url;
-                          }
-                        })()}
-                      </Button>
-                    ))}
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </div>
-          )}
-        </div>
-        
-        {repository && (
-          <div className="border rounded-md p-4 bg-muted/30">
-            <div className="flex flex-col md:flex-row justify-between">
-              <div>
-                <h2 className="font-semibold">Current Repository</h2>
-                <p className="text-sm break-all">{repository}</p>
-              </div>
-              
-              {pipelines.length > 0 && (
-                <div className="mt-4 md:mt-0">
-                  <Button 
-                    variant="outline" 
-                    onClick={handleExportExcel}
-                    className="flex items-center"
-                  >
-                    <FileText className="mr-2 h-4 w-4" />
-                    Export to Excel
-                  </Button>
-                </div>
-              )}
-            </div>
+        ) : pipelines.length > 0 ? (
+          <div className="grid grid-cols-1 gap-6">
+            {pipelines.map((pipeline) => (
+              <PipelineCard key={pipeline.id} pipeline={pipeline} />
+            ))}
           </div>
+        ) : (
+          <EmptyState
+            title="No pipelines found"
+            description="Enter a repository URL and token to fetch pipelines."
+          />
         )}
-        
-        <div className="mt-8">
-          {renderContent()}
-        </div>
-      </main>
-      
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <PipelineDetails pipeline={selectedPipeline} onClose={() => setDialogOpen(false)} />
-        </DialogContent>
-      </Dialog>
+      </div>
     </div>
   );
 };
