@@ -10,7 +10,7 @@ import PipelineDetails from '@/components/PipelineDetails';
 import EmptyState from '@/components/EmptyState';
 import PipelineSkeleton from '@/components/PipelineSkeleton';
 import { fetchGitLabPipelines, exportPipelinesToExcel } from '@/lib/gitlab-api';
-import { History, GitBranch, FileExcel } from 'lucide-react';
+import { History, GitBranch, FileText } from 'lucide-react';
 
 const Index = () => {
   const { toast } = useToast();
@@ -203,7 +203,7 @@ const Index = () => {
                     onClick={handleExportExcel}
                     className="flex items-center"
                   >
-                    <FileExcel className="mr-2 h-4 w-4" />
+                    <FileText className="mr-2 h-4 w-4" />
                     Export to Excel
                   </Button>
                 </div>
