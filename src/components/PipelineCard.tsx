@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,9 +20,11 @@ export interface Pipeline {
   stages: {
     name: string;
     status: 'success' | 'error' | 'warning' | 'running' | 'pending' | 'skipped';
-    failureReason: string | null;
+    failureReason?: string | null;
   }[];
   url?: string;
+  palmyraVersion?: string;
+  failureDetails?: string;
 }
 
 interface PipelineCardProps {

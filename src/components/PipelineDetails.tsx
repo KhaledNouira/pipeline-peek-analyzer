@@ -212,6 +212,15 @@ const PipelineDetails: React.FC<PipelineDetailsProps> = ({ pipeline, onClose }) 
                       <p className="font-medium">{pipeline.duration}</p>
                     </div>
                   </div>
+                  {pipeline.palmyraVersion && (
+                    <div className="flex items-center">
+                      <GitBranch className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm text-muted-foreground">Palmyra Version</p>
+                        <p className="font-medium">{pipeline.palmyraVersion}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               

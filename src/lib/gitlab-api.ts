@@ -1,10 +1,22 @@
 
 import { type Pipeline } from "@/components/PipelineCard";
+import * as XLSX from "xlsx";
+
+export interface PipelineExportData {
+  name: string;
+  status: string;
+  palmyraVersion: string;
+  executionCount: number;
+  issueDetails: string;
+  executionDate: string;
+}
 
 // Function to fetch pipeline data from GitLab API
 export const fetchGitLabPipelines = async (
   repoUrl: string, 
-  token: string
+  token: string,
+  dateFrom?: Date | null,
+  dateTo?: Date | null
 ): Promise<Pipeline[]> => {
   // Extract project path from URL
   const projectPath = extractProjectPathFromUrl(repoUrl);
@@ -15,9 +27,21 @@ export const fetchGitLabPipelines = async (
   // Encode the project path for API
   const encodedProjectPath = encodeURIComponent(projectPath);
   
-  // GitLab API URL for pipelines
-  const apiUrl = `https://git.vermeg.com/api/v4/projects/${encodedProjectPath}/pipelines?per_page=10`;
-
+  // Build the API URL with date filters if provided
+  let apiUrl = `https://git.vermeg.com/api/v4/projects/${encodedProjectPath}/pipelines?per_page=50`;
+  
+  if (dateFrom) {
+    const fromDate = new Date(dateFrom);
+    apiUrl += `&updated_after=${fromDate.toISOString()}`;
+  }
+  
+  if (dateTo) {
+    const toDate = new Date(dateTo);
+    // Add one day to include the end date
+    toDate.setDate(toDate.getDate() + 1);
+    apiUrl += `&updated_before=${toDate.toISOString()}`;
+  }
+  
   // Set up headers with the provided token
   const headers = { 'PRIVATE-TOKEN': token };
   
@@ -30,10 +54,8 @@ export const fetchGitLabPipelines = async (
   
   const pipelines = await response.json();
   
-  // Filter out skipped pipelines and take only the last 5
-  const filteredPipelines = pipelines
-    .filter((p: any) => p.status !== 'skipped')
-    .slice(0, 5);
+  // Filter out skipped pipelines 
+  const filteredPipelines = pipelines.filter((p: any) => p.status !== 'skipped');
     
   // Transform GitLab API format to our app's format
   return Promise.all(filteredPipelines.map(async (pipeline: any) => {
@@ -89,6 +111,16 @@ export const fetchGitLabPipelines = async (
     // Format the URL to view the pipeline in GitLab
     const pipelineUrl = `${repoUrl.replace('.git', '')}/-/pipelines/${pipeline.id}`;
     
+    // Extract Palmyra version - try to find it in commit message or variables
+    let palmyraVersion = "Unknown";
+    
+    // Check if there's a version in commit message (e.g., "Update to Palmyra v5.2.1")
+    const versionRegex = /palmyra\s+(?:version|v)?[:\s]*([\d\.]+)/i;
+    const commitMessageMatch = commitDetails.message.match(versionRegex);
+    if (commitMessageMatch && commitMessageMatch[1]) {
+      palmyraVersion = commitMessageMatch[1];
+    }
+    
     // Construct pipeline object in our app's format
     return {
       id: pipeline.id.toString(),
@@ -103,9 +135,58 @@ export const fetchGitLabPipelines = async (
       startedAt: pipeline.created_at,
       duration,
       stages: Array.from(stagesMap.values()),
-      url: pipelineUrl
+      url: pipelineUrl,
+      palmyraVersion,
+      failureDetails: stagesMap.get('test')?.failureReason || ""
     };
   }));
+};
+
+// Export pipelines data to Excel file
+export const exportPipelinesToExcel = (pipelines: Pipeline[]): void => {
+  if (pipelines.length === 0) {
+    console.error("No data to export");
+    return;
+  }
+  
+  // Group pipelines by Palmyra version to count executions
+  const versionCounts = new Map<string, number>();
+  pipelines.forEach(pipeline => {
+    const version = pipeline.palmyraVersion || "Unknown";
+    versionCounts.set(version, (versionCounts.get(version) || 0) + 1);
+  });
+  
+  // Prepare data for export
+  const exportData: PipelineExportData[] = pipelines.map(pipeline => {
+    // Find the first failed stage for issue details
+    let issueDetails = "";
+    if (pipeline.status === 'error') {
+      const failedStage = pipeline.stages.find(stage => stage.status === 'error');
+      if (failedStage) {
+        issueDetails = failedStage.failureReason || "Unknown error";
+      }
+    }
+    
+    return {
+      name: pipeline.name,
+      status: capitalizeFirstLetter(pipeline.status),
+      palmyraVersion: pipeline.palmyraVersion || "Unknown",
+      executionCount: versionCounts.get(pipeline.palmyraVersion || "Unknown") || 1,
+      issueDetails: issueDetails,
+      executionDate: new Date(pipeline.startedAt).toLocaleDateString()
+    };
+  });
+  
+  // Create worksheet
+  const worksheet = XLSX.utils.json_to_sheet(exportData);
+  
+  // Create workbook and add worksheet
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Pipelines");
+  
+  // Generate Excel file
+  const today = new Date().toISOString().split('T')[0];
+  XLSX.writeFile(workbook, `pipeline-report-${today}.xlsx`);
 };
 
 // Helper function to extract project path from GitLab URL
@@ -187,4 +268,9 @@ function shouldUpdateStageStatus(currentStatus: string, newStatus: string): bool
   };
   
   return (statusPriority[newStatus] || 0) > (statusPriority[currentStatus] || 0);
+}
+
+// Helper function to capitalize first letter
+function capitalizeFirstLetter(string: string): string {
+  return string.charAt(0).toUpperCase() + string.slice(1);
 }

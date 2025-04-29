@@ -9,8 +9,8 @@ import PipelineCard, { type Pipeline } from '@/components/PipelineCard';
 import PipelineDetails from '@/components/PipelineDetails';
 import EmptyState from '@/components/EmptyState';
 import PipelineSkeleton from '@/components/PipelineSkeleton';
-import { fetchGitLabPipelines } from '@/lib/gitlab-api';
-import { History, GitBranch } from 'lucide-react';
+import { fetchGitLabPipelines, exportPipelinesToExcel } from '@/lib/gitlab-api';
+import { History, GitBranch, FileExcel } from 'lucide-react';
 
 const Index = () => {
   const { toast } = useToast();
@@ -19,21 +19,26 @@ const Index = () => {
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [selectedPipeline, setSelectedPipeline] = useState<Pipeline | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [history, setHistory] = useState<{url: string, token: string}[]>([]);
+  const [history, setHistory] = useState<{url: string, token: string, dateFrom?: Date | null, dateTo?: Date | null}[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const handleAnalyzeRepository = async (repoUrl: string, token: string) => {
+  const handleAnalyzeRepository = async (
+    repoUrl: string, 
+    token: string, 
+    dateFrom?: Date | null, 
+    dateTo?: Date | null
+  ) => {
     setIsLoading(true);
     setRepository(repoUrl);
     setError(null);
     
     try {
-      const pipelineData = await fetchGitLabPipelines(repoUrl, token);
+      const pipelineData = await fetchGitLabPipelines(repoUrl, token, dateFrom, dateTo);
       setPipelines(pipelineData);
       
       // Add to history if not already present
       if (!history.some(item => item.url === repoUrl)) {
-        setHistory(prev => [{url: repoUrl, token}, ...prev.slice(0, 4)]);
+        setHistory(prev => [{url: repoUrl, token, dateFrom, dateTo}, ...prev.slice(0, 4)]);
       }
       
       toast({
@@ -59,8 +64,25 @@ const Index = () => {
     setDialogOpen(true);
   };
 
-  const handleHistoryItemClick = (url: string, token: string) => {
-    handleAnalyzeRepository(url, token);
+  const handleHistoryItemClick = (url: string, token: string, dateFrom?: Date | null, dateTo?: Date | null) => {
+    handleAnalyzeRepository(url, token, dateFrom, dateTo);
+  };
+
+  const handleExportExcel = () => {
+    try {
+      exportPipelinesToExcel(pipelines);
+      toast({
+        title: "Export Successful",
+        description: "Pipeline data has been exported to Excel"
+      });
+    } catch (error) {
+      console.error("Error exporting to Excel:", error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export pipeline data to Excel",
+        variant: "destructive"
+      });
+    }
   };
 
   const renderContent = () => {
@@ -142,7 +164,7 @@ const Index = () => {
                         key={`${item.url}-${index}`}
                         variant="outline" 
                         size="sm"
-                        onClick={() => handleHistoryItemClick(item.url, item.token)}
+                        onClick={() => handleHistoryItemClick(item.url, item.token, item.dateFrom, item.dateTo)}
                         className="text-xs"
                       >
                         {(() => {
@@ -168,8 +190,25 @@ const Index = () => {
         
         {repository && (
           <div className="border rounded-md p-4 bg-muted/30">
-            <h2 className="font-semibold">Current Repository</h2>
-            <p className="text-sm break-all">{repository}</p>
+            <div className="flex flex-col md:flex-row justify-between">
+              <div>
+                <h2 className="font-semibold">Current Repository</h2>
+                <p className="text-sm break-all">{repository}</p>
+              </div>
+              
+              {pipelines.length > 0 && (
+                <div className="mt-4 md:mt-0">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleExportExcel}
+                    className="flex items-center"
+                  >
+                    <FileExcel className="mr-2 h-4 w-4" />
+                    Export to Excel
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         )}
         

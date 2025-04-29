@@ -1,10 +1,9 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
-import { GitBranch } from 'lucide-react';
+import { GitBranch, Calendar } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -20,18 +19,24 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
 interface RepositoryFormProps {
-  onSubmit: (repoUrl: string, token: string) => void;
+  onSubmit: (repoUrl: string, token: string, dateFrom?: Date | null, dateTo?: Date | null) => void;
   isLoading: boolean;
 }
 
 const formSchema = z.object({
   repoUrl: z.string().min(1, "Repository URL is required"),
   gitlabToken: z.string().min(1, "GitLab token is required"),
+  dateFrom: z.date().nullable().optional(),
+  dateTo: z.date().nullable().optional(),
 });
 
 const RepositoryForm: React.FC<RepositoryFormProps> = ({ onSubmit, isLoading }) => {
@@ -71,11 +76,13 @@ const RepositoryForm: React.FC<RepositoryFormProps> = ({ onSubmit, isLoading }) 
     defaultValues: {
       repoUrl: "",
       gitlabToken: "",
+      dateFrom: null,
+      dateTo: null,
     },
   });
 
   const handleFormSubmit = (values: z.infer<typeof formSchema>) => {
-    onSubmit(values.repoUrl, values.gitlabToken);
+    onSubmit(values.repoUrl, values.gitlabToken, values.dateFrom, values.dateTo);
   };
 
   return (
@@ -108,6 +115,88 @@ const RepositoryForm: React.FC<RepositoryFormProps> = ({ onSubmit, isLoading }) 
             </FormItem>
           )}
         />
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="dateFrom"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Date From</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "MMM dd, yyyy")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                        <Calendar className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={field.value || undefined}
+                      onSelect={field.onChange}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="dateTo"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Date To</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, "MMM dd, yyyy")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                        <Calendar className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={field.value || undefined}
+                      onSelect={field.onChange}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
         
         <FormField
           control={form.control}
