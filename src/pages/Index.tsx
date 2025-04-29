@@ -9,7 +9,7 @@ import PipelineCard, { type Pipeline } from '@/components/PipelineCard';
 import PipelineDetails from '@/components/PipelineDetails';
 import EmptyState from '@/components/EmptyState';
 import PipelineSkeleton from '@/components/PipelineSkeleton';
-import { generateMockPipelineData } from '@/lib/mock-pipeline-data';
+import { fetchGitLabPipelines } from '@/lib/gitlab-api';
 import { History, GitBranch } from 'lucide-react';
 
 const Index = () => {
@@ -19,21 +19,21 @@ const Index = () => {
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [selectedPipeline, setSelectedPipeline] = useState<Pipeline | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [history, setHistory] = useState<string[]>([]);
+  const [history, setHistory] = useState<{url: string, token: string}[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const handleAnalyzeRepository = async (repoUrl: string) => {
+  const handleAnalyzeRepository = async (repoUrl: string, token: string) => {
     setIsLoading(true);
     setRepository(repoUrl);
     setError(null);
     
     try {
-      // Note that generateMockPipelineData is now async
-      const pipelineData = await generateMockPipelineData(repoUrl);
+      const pipelineData = await fetchGitLabPipelines(repoUrl, token);
       setPipelines(pipelineData);
       
-      if (!history.includes(repoUrl)) {
-        setHistory(prev => [repoUrl, ...prev.slice(0, 4)]);
+      // Add to history if not already present
+      if (!history.some(item => item.url === repoUrl)) {
+        setHistory(prev => [{url: repoUrl, token}, ...prev.slice(0, 4)]);
       }
       
       toast({
@@ -42,10 +42,10 @@ const Index = () => {
       });
     } catch (error) {
       console.error("Error analyzing repository:", error);
-      setError("Failed to fetch pipeline data. GitLab API requires authentication.");
+      setError(`Failed to fetch pipeline data: ${error instanceof Error ? error.message : String(error)}`);
       toast({
         title: "Error",
-        description: "Failed to analyze repository pipelines. GitLab API requires authentication.",
+        description: "Failed to analyze repository pipelines. Check your token and try again.",
         variant: "destructive",
       });
       setPipelines([]);
@@ -59,8 +59,8 @@ const Index = () => {
     setDialogOpen(true);
   };
 
-  const handleHistoryItemClick = (url: string) => {
-    handleAnalyzeRepository(url);
+  const handleHistoryItemClick = (url: string, token: string) => {
+    handleAnalyzeRepository(url, token);
   };
 
   const renderContent = () => {
@@ -80,8 +80,7 @@ const Index = () => {
           <h3 className="font-semibold text-lg mb-2">API Access Error</h3>
           <p className="text-muted-foreground mb-4">{error}</p>
           <p className="text-sm">
-            Note: GitLab API requires authentication for private repositories. 
-            This app is currently using simulated data that resembles GitLab pipelines.
+            Make sure your GitLab token has the appropriate permissions to access the API and the repository.
           </p>
         </div>
       );
@@ -138,24 +137,24 @@ const Index = () => {
                 </TabsList>
                 <TabsContent value="recent" className="mt-2">
                   <div className="flex flex-wrap gap-2">
-                    {history.map((url, index) => (
+                    {history.map((item, index) => (
                       <Button 
-                        key={`${url}-${index}`}
+                        key={`${item.url}-${index}`}
                         variant="outline" 
                         size="sm"
-                        onClick={() => handleHistoryItemClick(url)}
+                        onClick={() => handleHistoryItemClick(item.url, item.token)}
                         className="text-xs"
                       >
                         {(() => {
                           try {
-                            const parsed = new URL(url);
+                            const parsed = new URL(item.url);
                             const pathParts = parsed.pathname.split('/').filter(Boolean);
                             if (pathParts.length >= 2) {
-                              return `${pathParts[0]}/${pathParts[1]}`;
+                              return pathParts[pathParts.length - 1].replace('.git', '');
                             }
-                            return url;
+                            return item.url;
                           } catch {
-                            return url;
+                            return item.url;
                           }
                         })()}
                       </Button>
